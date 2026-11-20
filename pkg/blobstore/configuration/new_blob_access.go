@@ -443,11 +443,15 @@ func (nc *simpleNestedBlobAccessCreator[T]) newNestedBlobAccessBare(configuratio
 			if err != nil {
 				return BlobAccessInfo[T]{}, "", err
 			}
+			instanceNamePatcher := digest.NewInstanceNamePatcher(matchInstanceNamePrefix, addInstanceNamePrefix)
+			if demultiplexed.DiscardInstanceNameSuffix {
+				instanceNamePatcher = digest.NewSuffixDiscardingInstanceNamePatcher(matchInstanceNamePrefix, addInstanceNamePrefix)
+			}
 			backendsTrie.Set(matchInstanceNamePrefix, len(backends))
 			backends = append(backends, demultiplexedBackendInfo{
 				backend:             backend.BlobAccess,
 				backendName:         matchInstanceNamePrefix.String(),
-				instanceNamePatcher: digest.NewInstanceNamePatcher(matchInstanceNamePrefix, addInstanceNamePrefix),
+				instanceNamePatcher: instanceNamePatcher,
 			})
 		}
 		return BlobAccessInfo[T]{

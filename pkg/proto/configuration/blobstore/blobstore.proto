@@ -864,6 +864,15 @@ message DemultiplexedBlobAccessConfiguration {
   // Add a prefix to the instance name of all requests forwarded to this
   // backend.
   string add_instance_name_prefix = 2;
+
+  // Discard the part of the instance name that follows the matching
+  // prefix, instead of appending it to add_instance_name_prefix. All
+  // instance names matching this prefix are thereby mapped to
+  // add_instance_name_prefix.
+  //
+  // This can be used to let requests for multiple instance names share
+  // a single namespace in the backend, without listing each of them.
+  bool discard_instance_name_suffix = 3;
 }
 
 message ActionResultExpiringBlobAccessConfiguration {

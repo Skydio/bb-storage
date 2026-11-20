@@ -328,6 +328,65 @@ func TestDemultiplexingBlobAccessFindMissing(t *testing.T) {
 			missing,
 		)
 	})
+
+	t.Run("SuffixDiscarding", func(t *testing.T) {
+		// Call FindMissing() with digests for three instance
+		// names that are all mapped to the same instance name
+		// in the backend. The backend should receive each blob
+		// only once. Blobs that are missing should be reported
+		// using each of the instance names provided by the
+		// caller.
+		baseBlobAccess := mock.NewMockBlobAccess[*chunk.Chunk](ctrl)
+		for _, instanceName := range []string{"a", "a/x", "a/y"} {
+			demultiplexedBlobAccessGetter.EXPECT().Call(util.Must(digest.NewInstanceName(instanceName))).Return(
+				baseBlobAccess,
+				"a",
+				digest.NewSuffixDiscardingInstanceNamePatcher(
+					util.Must(digest.NewInstanceName("a")),
+					util.Must(digest.NewInstanceName("A")),
+				),
+				nil,
+			)
+		}
+		baseBlobAccess.EXPECT().FindMissing(
+			ctx,
+			digest.NewSetBuilder(0).
+				Add(digest.MustNewDigest("A", remoteexecution.DigestFunction_MD5, "8b1a9953c4611296a827abf8c47804d7", 5)).
+				Add(digest.MustNewDigest("A", remoteexecution.DigestFunction_MD5, "6fc422233a40a75a1f028e11c3cd1140", 7)).
+				Add(digest.MustNewDigest("A", remoteexecution.DigestFunction_MD5, "d41d8cd98f00b204e9800998ecf8427e", 0)).
+				Build(),
+		).
+			Return(
+				digest.NewSetBuilder(0).
+					Add(digest.MustNewDigest("A", remoteexecution.DigestFunction_MD5, "8b1a9953c4611296a827abf8c47804d7", 5)).
+					Add(digest.MustNewDigest("A", remoteexecution.DigestFunction_MD5, "d41d8cd98f00b204e9800998ecf8427e", 0)).
+					Build(),
+				nil,
+			)
+
+		missing, err := blobAccess.FindMissing(
+			ctx,
+			digest.NewSetBuilder(0).
+				Add(digest.MustNewDigest("a", remoteexecution.DigestFunction_MD5, "8b1a9953c4611296a827abf8c47804d7", 5)).
+				Add(digest.MustNewDigest("a/x", remoteexecution.DigestFunction_MD5, "8b1a9953c4611296a827abf8c47804d7", 5)).
+				Add(digest.MustNewDigest("a/x", remoteexecution.DigestFunction_MD5, "6fc422233a40a75a1f028e11c3cd1140", 7)).
+				Add(digest.MustNewDigest("a/y", remoteexecution.DigestFunction_MD5, "8b1a9953c4611296a827abf8c47804d7", 5)).
+				Add(digest.MustNewDigest("a/y", remoteexecution.DigestFunction_MD5, "6fc422233a40a75a1f028e11c3cd1140", 7)).
+				Add(digest.MustNewDigest("a/y", remoteexecution.DigestFunction_MD5, "d41d8cd98f00b204e9800998ecf8427e", 0)).
+				Build(),
+		)
+		require.NoError(t, err)
+		require.Equal(
+			t,
+			digest.NewSetBuilder(0).
+				Add(digest.MustNewDigest("a", remoteexecution.DigestFunction_MD5, "8b1a9953c4611296a827abf8c47804d7", 5)).
+				Add(digest.MustNewDigest("a/x", remoteexecution.DigestFunction_MD5, "8b1a9953c4611296a827abf8c47804d7", 5)).
+				Add(digest.MustNewDigest("a/y", remoteexecution.DigestFunction_MD5, "8b1a9953c4611296a827abf8c47804d7", 5)).
+				Add(digest.MustNewDigest("a/y", remoteexecution.DigestFunction_MD5, "d41d8cd98f00b204e9800998ecf8427e", 0)).
+				Build(),
+			missing,
+		)
+	})
 }
 
 func TestDemultiplexingBlobAccessGetCapabilities(t *testing.T) {

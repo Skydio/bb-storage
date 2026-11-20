@@ -94,3 +94,44 @@ func (ip *actualInstanceNamePatcher) PatchDigest(d Digest) Digest {
 func (ip *actualInstanceNamePatcher) UnpatchDigest(d Digest) Digest {
 	return patchDigest(d, len(ip.newPrefixWithSlash), ip.oldPrefixWithSlash, ip.oldPrefixWithoutSlash)
 }
+
+type suffixDiscardingInstanceNamePatcher struct {
+	oldPrefix string
+	newPrefix string
+}
+
+// NewSuffixDiscardingInstanceNamePatcher creates an InstanceNamePatcher
+// that replaces any instance name starting with a given prefix with
+// another value, discarding any pathname components that follow the
+// prefix. It is not valid to apply the resulting InstanceNamePatcher
+// against objects that don't have an instance name starting with the
+// provided prefix.
+//
+// As multiple instance names are mapped to the same value,
+// UnpatchDigest() is not the inverse of PatchDigest(). It always
+// yields the old prefix, without any trailing pathname components.
+func NewSuffixDiscardingInstanceNamePatcher(oldPrefix, newPrefix InstanceName) InstanceNamePatcher {
+	return &suffixDiscardingInstanceNamePatcher{
+		oldPrefix: oldPrefix.String(),
+		newPrefix: newPrefix.String(),
+	}
+}
+
+func replaceDigestInstanceName(d Digest, instanceName string) Digest {
+	_, _, _, _, sizeBytesEnd := d.unpack()
+	return Digest{
+		value: d.value[:sizeBytesEnd+1] + instanceName,
+	}
+}
+
+func (ip *suffixDiscardingInstanceNamePatcher) PatchInstanceName(i InstanceName) InstanceName {
+	return InstanceName{value: ip.newPrefix}
+}
+
+func (ip *suffixDiscardingInstanceNamePatcher) PatchDigest(d Digest) Digest {
+	return replaceDigestInstanceName(d, ip.newPrefix)
+}
+
+func (ip *suffixDiscardingInstanceNamePatcher) UnpatchDigest(d Digest) Digest {
+	return replaceDigestInstanceName(d, ip.oldPrefix)
+}

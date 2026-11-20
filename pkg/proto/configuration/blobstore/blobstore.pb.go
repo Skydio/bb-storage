@@ -1385,11 +1385,12 @@ func (x *DemultiplexingBlobAccessConfiguration) GetInstanceNamePrefixes() map[st
 }
 
 type DemultiplexedBlobAccessConfiguration struct {
-	state                 protoimpl.MessageState   `protogen:"open.v1"`
-	Backend               *BlobAccessConfiguration `protobuf:"bytes,1,opt,name=backend,proto3" json:"backend,omitempty"`
-	AddInstanceNamePrefix string                   `protobuf:"bytes,2,opt,name=add_instance_name_prefix,json=addInstanceNamePrefix,proto3" json:"add_instance_name_prefix,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                     protoimpl.MessageState   `protogen:"open.v1"`
+	Backend                   *BlobAccessConfiguration `protobuf:"bytes,1,opt,name=backend,proto3" json:"backend,omitempty"`
+	AddInstanceNamePrefix     string                   `protobuf:"bytes,2,opt,name=add_instance_name_prefix,json=addInstanceNamePrefix,proto3" json:"add_instance_name_prefix,omitempty"`
+	DiscardInstanceNameSuffix bool                     `protobuf:"varint,3,opt,name=discard_instance_name_suffix,json=discardInstanceNameSuffix,proto3" json:"discard_instance_name_suffix,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *DemultiplexedBlobAccessConfiguration) Reset() {
@@ -1434,6 +1435,13 @@ func (x *DemultiplexedBlobAccessConfiguration) GetAddInstanceNamePrefix() string
 		return x.AddInstanceNamePrefix
 	}
 	return ""
+}
+
+func (x *DemultiplexedBlobAccessConfiguration) GetDiscardInstanceNameSuffix() bool {
+	if x != nil {
+		return x.DiscardInstanceNameSuffix
+	}
+	return false
 }
 
 type ActionResultExpiringBlobAccessConfiguration struct {
@@ -2140,10 +2148,11 @@ const file_github_com_buildbarn_bb_storage_pkg_proto_configuration_blobstore_blo
 	"\x16instance_name_prefixes\x18\x01 \x03(\v2b.buildbarn.configuration.blobstore.DemultiplexingBlobAccessConfiguration.InstanceNamePrefixesEntryR\x14instanceNamePrefixes\x1a\x90\x01\n" +
 	"\x19InstanceNamePrefixesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12]\n" +
-	"\x05value\x18\x02 \x01(\v2G.buildbarn.configuration.blobstore.DemultiplexedBlobAccessConfigurationR\x05value:\x028\x01\"\xb5\x01\n" +
+	"\x05value\x18\x02 \x01(\v2G.buildbarn.configuration.blobstore.DemultiplexedBlobAccessConfigurationR\x05value:\x028\x01\"\xf6\x01\n" +
 	"$DemultiplexedBlobAccessConfiguration\x12T\n" +
 	"\abackend\x18\x01 \x01(\v2:.buildbarn.configuration.blobstore.BlobAccessConfigurationR\abackend\x127\n" +
-	"\x18add_instance_name_prefix\x18\x02 \x01(\tR\x15addInstanceNamePrefix\"\xe5\x02\n" +
+	"\x18add_instance_name_prefix\x18\x02 \x01(\tR\x15addInstanceNamePrefix\x12?\n" +
+	"\x1cdiscard_instance_name_suffix\x18\x03 \x01(\bR\x19discardInstanceNameSuffix\"\xe5\x02\n" +
 	"+ActionResultExpiringBlobAccessConfiguration\x12T\n" +
 	"\abackend\x18\x01 \x01(\v2:.buildbarn.configuration.blobstore.BlobAccessConfigurationR\abackend\x12D\n" +
 	"\x10minimum_validity\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0fminimumValidity\x12Q\n" +

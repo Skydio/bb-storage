@@ -81,9 +81,11 @@ func (ba *demultiplexingBlobAccess[T]) Put(ctx context.Context, digest digest.Di
 func (ba *demultiplexingBlobAccess[T]) FindMissing(ctx context.Context, digests digest.Set) (digest.Set, error) {
 	// Partition the digest set into one set per backend.
 	type partitionInfo struct {
-		digests digest.SetBuilder
-		backend BlobAccess[T]
-		patcher digest.InstanceNamePatcher
+		digests         digest.SetBuilder
+		originalDigests []digest.Digest
+		patchedDigests  []digest.Digest
+		backend         BlobAccess[T]
+		patcher         digest.InstanceNamePatcher
 	}
 	perInstanceNamePartitions := map[digest.InstanceName]*partitionInfo{}
 	perBackendPartitions := map[string]*partitionInfo{}
@@ -109,7 +111,10 @@ func (ba *demultiplexingBlobAccess[T]) FindMissing(ctx context.Context, digests 
 			perInstanceNamePartitions[instanceName] = partition
 		}
 		// Change the instance name if requested.
-		partition.digests.Add(partition.patcher.PatchDigest(blobDigest))
+		patchedDigest := partition.patcher.PatchDigest(blobDigest)
+		partition.digests.Add(patchedDigest)
+		partition.originalDigests = append(partition.originalDigests, blobDigest)
+		partition.patchedDigests = append(partition.patchedDigests, patchedDigest)
 	}
 
 	// Call FindMissing() on each of the backends and gather the
@@ -125,9 +130,23 @@ func (ba *demultiplexingBlobAccess[T]) FindMissing(ctx context.Context, digests 
 		if err != nil {
 			return digest.EmptySet, util.StatusWrapf(err, "Backend %#v", backendName)
 		}
+		if partitionMissing.Empty() {
+			continue
+		}
+
+		// Undo changes to the instance name. As patching may
+		// map multiple instance names to the same value, report
+		// all digests provided by the caller that correspond to
+		// a missing digest, as opposed to unpatching the
+		// digests returned by the backend.
+		missing := make(map[digest.Digest]struct{}, partitionMissing.Length())
 		for _, blobDigest := range partitionMissing.Items() {
-			// Undo changes to the instance name.
-			allMissing.Add(partition.patcher.UnpatchDigest(blobDigest))
+			missing[blobDigest] = struct{}{}
+		}
+		for i, blobDigest := range partition.patchedDigests {
+			if _, ok := missing[blobDigest]; ok {
+				allMissing.Add(partition.originalDigests[i])
+			}
 		}
 	}
 	return allMissing.Build(), nil
