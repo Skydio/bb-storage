@@ -128,4 +128,15 @@ func TestInstanceNameTrie(t *testing.T) {
 		require.Equal(t, -1, it.GetLongestPrefix(util.Must(digest.NewInstanceName("a/b/c/d/e"))))
 		require.False(t, it.ContainsPrefix(util.Must(digest.NewInstanceName("a/b/c/d/e"))))
 	})
+
+	t.Run("PartialComponent", func(t *testing.T) {
+		// Prefixes should only match whole pathname components.
+		it := digest.NewInstanceNameTrie()
+		it.Set(util.Must(digest.NewInstanceName("base")), 123)
+
+		require.Equal(t, 123, it.GetLongestPrefix(util.Must(digest.NewInstanceName("base"))))
+		require.Equal(t, 123, it.GetLongestPrefix(util.Must(digest.NewInstanceName("base/variant"))))
+		require.Equal(t, -1, it.GetLongestPrefix(util.Must(digest.NewInstanceName("base-cache"))))
+		require.Equal(t, -1, it.GetLongestPrefix(util.Must(digest.NewInstanceName("base-cache/variant"))))
+	})
 }
